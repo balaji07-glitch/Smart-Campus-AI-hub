@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAccessibility } from '../../context/AccessibilityContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import {
   CampusEvent,
   ClassTimetableEntry,
@@ -36,6 +37,7 @@ import {
 export const ManageEventsSchedules: React.FC = () => {
   const { announce } = useAccessibility();
   const { currentUser } = useAuth();
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<'events' | 'timetables' | 'exams' | 'aiSync' | 'tickets'>('events');
 
@@ -267,7 +269,7 @@ export const ManageEventsSchedules: React.FC = () => {
     }
 
     if (entries.length === 0) {
-      alert('No valid CSV rows parsed. Please check the format.');
+      toast.warning('CSV Parse Error', 'No valid rows found. Please check the format.');
       return;
     }
 
@@ -352,7 +354,7 @@ export const ManageEventsSchedules: React.FC = () => {
     }
 
     if (entries.length === 0) {
-      alert('No valid exam rows parsed.');
+      toast.warning('CSV Parse Error', 'No valid exam rows found. Please check the format.');
       return;
     }
 

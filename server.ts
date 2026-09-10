@@ -196,6 +196,55 @@ async function startServer() {
     });
   });
 
+  // ==========================================
+  // Notifications Endpoint
+  // ==========================================
+  app.get('/api/notifications', (req, res) => {
+    const now = new Date();
+    const notifications: Array<{
+      id: string; type: string; title: string; body: string;
+      timestamp: string; priority: string; linkTab?: string;
+    }> = [];
+
+    // Derive notifications from upcoming campus events
+    for (const evt of campusEvents) {
+      const evtDate = new Date(evt.date);
+      const daysUntil = Math.ceil((evtDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntil >= 0 && daysUntil <= 14) {
+        notifications.push({
+          id: `notif_event_${evt.id}`,
+          type: 'event',
+          title: `📅 Upcoming Event: ${evt.title}`,
+          body: `${evt.title} is on ${evt.date} at ${evt.time} — ${evt.venue}. Organized by ${evt.organizer || 'Campus Admin'}.`,
+          timestamp: new Date(now.getTime() - Math.random() * 3600_000).toISOString(),
+          priority: daysUntil <= 3 ? 'high' : 'medium',
+          linkTab: 'ask',
+        });
+      }
+    }
+
+    // Derive notifications from upcoming exams
+    for (const ex of examSchedules) {
+      const exDate = new Date(ex.examDate);
+      const daysUntil = Math.ceil((exDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntil >= 0 && daysUntil <= 21) {
+        notifications.push({
+          id: `notif_exam_${ex.id}`,
+          type: 'exam',
+          title: `📋 Exam: ${ex.courseCode} – ${ex.courseName}`,
+          body: `${ex.courseName} exam on ${ex.examDate} at ${ex.examTime} in ${ex.venue}.`,
+          timestamp: new Date(now.getTime() - Math.random() * 7200_000).toISOString(),
+          priority: daysUntil <= 7 ? 'high' : 'medium',
+          linkTab: 'ask',
+        });
+      }
+    }
+
+    // Sort by priority: high first
+    notifications.sort((a, b) => (a.priority === 'high' ? -1 : 1));
+    res.json(notifications.slice(0, 20));
+  });
+
   app.get('/api/auth/users', (req, res) => {
     res.json(users);
   });

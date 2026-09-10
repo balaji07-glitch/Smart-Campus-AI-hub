@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { AccessibilityProvider } from './context/AccessibilityContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { SkipLink } from './components/common/SkipLink';
 import { Header } from './components/common/Header';
+import { VoiceAssistant } from './components/common/VoiceAssistant';
 import { DashboardHome } from './components/dashboard/DashboardHome';
 import { NavigateModule } from './components/navigate/NavigateModule';
 import { AskModule } from './components/ask/AskModule';
@@ -102,6 +105,9 @@ const MainApp: React.FC = () => {
 
       {/* Role Auth Modal in case user triggers a role switch / signup */}
       <RoleAuthModal />
+
+      {/* Global AI Voice Assistant (floating, all tabs) */}
+      <VoiceAssistant />
     </div>
   );
 };
@@ -110,7 +116,11 @@ export default function App() {
   return (
     <AccessibilityProvider>
       <AuthProvider>
-        <MainApp />
+        <NotificationProvider>
+          <ToastProvider>
+            <MainApp />
+          </ToastProvider>
+        </NotificationProvider>
       </AuthProvider>
     </AccessibilityProvider>
   );

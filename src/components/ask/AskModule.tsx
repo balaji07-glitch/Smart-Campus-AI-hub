@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAccessibility } from '../../context/AccessibilityContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { ChatMessage, HelpdeskTicket, KBDocument } from '../../types';
 import {
   MessageSquareCode,
@@ -24,6 +25,7 @@ import {
 export const AskModule: React.FC = () => {
   const { t, language, announce, speakText } = useAccessibility();
   const { currentUser } = useAuth();
+  const toast = useToast();
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -79,7 +81,7 @@ export const AskModule: React.FC = () => {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert('Speech Recognition is not supported by your browser. Please type your query.');
+      toast.warning('Browser Not Supported', 'Speech recognition is not supported. Please type your query.');
       return;
     }
 
@@ -321,6 +323,7 @@ export const AskModule: React.FC = () => {
       setIsTicketModalOpen(false);
       setTicketQuery('');
       announce(`Helpdesk ticket ${newTicket.id} created successfully.`);
+      toast.success('Ticket Submitted!', `Ticket #${newTicket.id} sent to ${newTicket.department}.`);
 
       // Add system confirmation message to chat
       const confirmMsg: ChatMessage = {
@@ -333,6 +336,7 @@ export const AskModule: React.FC = () => {
       setMessages(prev => [...prev, confirmMsg]);
     } catch (err) {
       console.error('Failed to create ticket:', err);
+      toast.error('Ticket Failed', 'Could not submit your ticket. Please try again.');
     }
   };
 

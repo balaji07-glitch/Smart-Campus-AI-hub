@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useAccessibility, FontSize } from '../../context/AccessibilityContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { LanguageCode, UserRole } from '../../types';
 import {
   Compass,
@@ -20,6 +21,10 @@ import {
   Users,
   LayoutDashboard,
   CalendarCheck2,
+  Bell,
+  BellRing,
+  X,
+  CheckCheck,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -41,8 +46,22 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
     isSpeaking,
     stopSpeaking,
   } = useAccessibility();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
 
   const [isLangOpen, setIsLangOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  // Close notification panel when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const navItems: { id: string; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: t.common.dashboard, icon: LayoutDashboard },
@@ -65,11 +84,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
     navItems.push({ id: 'admin', label: 'Manage Events & Schedules', icon: CalendarCheck2 });
   }
 
-  const languages: { code: LanguageCode; label: string; native: string }[] = [
-    { code: 'en', label: 'English', native: 'English' },
+  const languages: { code: LanguageCode; label: string; native: string; primary?: boolean }[] = [
+    { code: 'en', label: 'English', native: 'English', primary: true },
+    { code: 'ta', label: 'Tamil', native: 'தமிழ்', primary: true },
     { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
     { code: 'es', label: 'Spanish', native: 'Español' },
-    { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
   ];
 
   const fontSizes: { size: FontSize; label: string; tooltip: string }[] = [
@@ -170,6 +189,107 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
               </button>
             )}
 
+          {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                id="btn-notifications"
+                type="button"
+                onClick={() => setIsNotifOpen(prev => !prev)}
+                className="relative flex items-center justify-center h-7 w-7 rounded-full text-slate-300 hover:bg-slate-800 transition-colors focus:outline-hidden focus:ring-1 focus:ring-blue-400"
+                aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+                aria-expanded={isNotifOpen}
+              >
+                {unreadCount > 0 ? (
+                  <BellRing className="w-4 h-4 text-amber-400" aria-hidden="true" />
+                ) : (
+                  <Bell className="w-4 h-4" aria-hidden="true" />
+                )}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-0.5 rounded-full bg-rose-500 text-white text-3xs font-bold flex items-center justify-center border border-slate-900">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-xl bg-white border border-slate-200 shadow-2xl z-50 overflow-hidden">
+                  {/* Panel Header */}
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 text-white">
+                    <div className="flex items-center gap-2">
+                      <Bell size={14} className="text-amber-400" />
+                      <span className="text-xs font-bold">Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-3xs font-bold">{unreadCount} new</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button onClick={markAllRead} className="text-3xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                          <CheckCheck size={11} />
+                          Mark all read
+                        </button>
+                      )}
+                      <button onClick={() => setIsNotifOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Notification List */}
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                    {notifications.length === 0 ? (
+                      <div className="py-8 text-center text-slate-400 text-xs">No notifications</div>
+                    ) : (
+                      notifications.map(n => {
+                        const typeColors: Record<string, string> = {
+                          exam: 'bg-rose-50 border-rose-200 text-rose-700',
+                          event: 'bg-blue-50 border-blue-200 text-blue-700',
+                          timetable: 'bg-amber-50 border-amber-200 text-amber-700',
+                          helpdesk: 'bg-purple-50 border-purple-200 text-purple-700',
+                          collab: 'bg-teal-50 border-teal-200 text-teal-700',
+                          system: 'bg-slate-50 border-slate-200 text-slate-600',
+                        };
+                        const badgeColor = typeColors[n.type] || typeColors.system;
+                        return (
+                          <button
+                            key={n.id}
+                            onClick={() => {
+                              markRead(n.id);
+                              if (n.linkTab) setActiveTab(n.linkTab);
+                              setIsNotifOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex gap-3 items-start ${
+                              !n.isRead ? 'bg-blue-50/40' : ''
+                            }`}
+                          >
+                            {/* Priority dot */}
+                            <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${
+                              n.isRead ? 'bg-slate-300' : n.priority === 'high' ? 'bg-rose-500' : 'bg-blue-500'
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-semibold text-slate-800 leading-snug ${!n.isRead ? 'font-bold' : ''}`}>
+                                {n.title}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-0.5 leading-snug line-clamp-2">{n.body}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-3xs font-medium border ${badgeColor}`}>
+                                  {n.type}
+                                </span>
+                                <span className="text-3xs text-slate-400">
+                                  {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Multilingual Switcher */}
             <div className="relative">
               <button
@@ -190,30 +310,47 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
               {isLangOpen && (
                 <div
-                  className="absolute right-0 mt-1 w-36 rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 z-50 text-slate-900 border border-slate-200"
+                  className="absolute right-0 mt-1 w-40 rounded-md bg-white py-1.5 shadow-lg ring-1 ring-black/5 z-50 text-slate-900 border border-slate-200"
                   role="listbox"
                   aria-label="Select Language"
                 >
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      id={`lang-opt-${lang.code}`}
-                      type="button"
-                      onClick={() => {
-                        setLanguage(lang.code);
-                        setIsLangOpen(false);
-                        announce(`Language changed to ${lang.label}`);
-                      }}
-                      className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-blue-50 transition-colors ${
-                        language === lang.code ? 'font-bold text-blue-700 bg-blue-50/50' : 'text-slate-700'
-                      }`}
-                      role="option"
-                      aria-selected={language === lang.code}
-                    >
-                      <span>{lang.native}</span>
-                      <span className="text-slate-400 text-3xs uppercase">{lang.code}</span>
-                    </button>
-                  ))}
+                  {/* Primary languages */}
+                  <div className="px-3 pb-1">
+                    <p className="text-3xs text-slate-400 font-semibold uppercase tracking-wide mb-1">Primary</p>
+                    {languages.filter(l => l.primary).map((lang) => (
+                      <button
+                        key={lang.code}
+                        id={`lang-opt-${lang.code}`}
+                        type="button"
+                        onClick={() => { setLanguage(lang.code); setIsLangOpen(false); announce(`Language changed to ${lang.label}`); }}
+                        className={`w-full text-left px-2 py-1.5 text-xs flex items-center justify-between rounded hover:bg-blue-50 transition-colors ${
+                          language === lang.code ? 'font-bold text-blue-700 bg-blue-50' : 'text-slate-700'
+                        }`}
+                        role="option" aria-selected={language === lang.code}
+                      >
+                        <span>{lang.native}</span>
+                        <span className="text-slate-400 text-3xs uppercase">{lang.code}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t border-slate-100 px-3 pt-1">
+                    <p className="text-3xs text-slate-400 font-semibold uppercase tracking-wide mb-1">More</p>
+                    {languages.filter(l => !l.primary).map((lang) => (
+                      <button
+                        key={lang.code}
+                        id={`lang-opt-${lang.code}`}
+                        type="button"
+                        onClick={() => { setLanguage(lang.code); setIsLangOpen(false); announce(`Language changed to ${lang.label}`); }}
+                        className={`w-full text-left px-2 py-1.5 text-xs flex items-center justify-between rounded hover:bg-blue-50 transition-colors ${
+                          language === lang.code ? 'font-bold text-blue-700 bg-blue-50' : 'text-slate-700'
+                        }`}
+                        role="option" aria-selected={language === lang.code}
+                      >
+                        <span>{lang.native}</span>
+                        <span className="text-slate-400 text-3xs uppercase">{lang.code}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
