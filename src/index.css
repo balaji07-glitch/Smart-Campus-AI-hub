@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* Accessibility Font Scale Adjustments */
+html.font-scale-sm {
+  font-size: 14px;
+}
+html.font-scale-md {
+  font-size: 16px;
+}
+html.font-scale-lg {
+  font-size: 18px;
+}
+html.font-scale-xl {
+  font-size: 20px;
+}
+
+/* Accessibility High-Contrast Mode (WCAG 2.1 AAA Compliant) */
+html.high-contrast {
+  filter: contrast(125%);
+}
+
+html.high-contrast body {
+  background-color: #020617;
+  color: #f8fafc;
+}
+
+html.high-contrast header {
+  background-color: #000000;
+  border-bottom: 2px solid #facc15;
+}
+
+html.high-contrast .bg-white {
+  background-color: #090d16 !important;
+  color: #ffffff !important;
+  border-color: #facc15 !important;
+}
+
+html.high-contrast .text-slate-900,
+html.high-contrast .text-slate-800,
+html.high-contrast .text-slate-700,
+html.high-contrast .text-slate-600,
+html.high-contrast .text-slate-500 {
+  color: #f1f5f9 !important;
+}
+
+html.high-contrast button {
+  border-color: #facc15;
+}
+
+html.high-contrast a,
+html.high-contrast button:focus {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 2px !important;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}

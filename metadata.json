@@ -1,0 +1,6 @@
+{
+  "name": "Smart Campus AI Hub",
+  "description": "Unified smart campus platform featuring indoor and outdoor accessible navigation, verified RAG AI chatbot, research collaboration matcher, and course outcome attainment analytics.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
