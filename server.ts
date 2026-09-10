@@ -170,11 +170,19 @@ function getGeminiClient(): GoogleGenAI | null {
   return aiClient;
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+export const app = express();
+app.use(express.json({ limit: '10mb' }));
 
-  app.use(express.json({ limit: '10mb' }));
+// Express route path normalization for Vercel serverless functions
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api') && !req.url.startsWith('/@') && req.url !== '/') {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
+async function startServer() {
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   // ==========================================
   // Health & Auth Endpoints
@@ -1315,13 +1323,13 @@ ${contextPrompt}`,
   // ==========================================
   // Vite Integration (Dev Middleware vs Production Dist)
   // ==========================================
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -1329,12 +1337,18 @@ ${contextPrompt}`,
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Smart Campus AI Hub server listening on http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Smart Campus AI Hub server listening on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-startServer().catch(err => {
-  console.error('Fatal server startup failure:', err);
-  process.exit(1);
-});
+export default app;
+
+if (!process.env.VERCEL) {
+  startServer().catch(err => {
+    console.error('Fatal server startup failure:', err);
+    process.exit(1);
+  });
+}
